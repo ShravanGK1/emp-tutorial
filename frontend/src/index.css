@@ -1,0 +1,15 @@
+@import "tailwindcss";
+
+@theme {
+  --color-brand-dark: #0f172a;
+  --color-brand-light: #f8fafc;
+  --color-brand-active: #10b981;
+  --color-brand-inactive: #64748b;
+  --color-brand-release: #ef4444;
+}
+
+@layer base {
+  body {
+    @apply bg-brand-light text-slate-800 dark:bg-slate-900 dark:text-slate-100 transition-colors duration-200;
+  }
+}
