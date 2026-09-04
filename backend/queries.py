@@ -1,33 +1,34 @@
 from typing import List, Optional
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from datetime import date
 import random
+from sqlalchemy.orm import Session
+from models import EmployeeModel
 
-# We'll use simple random data generation to avoid external dependencies like Faker for now,
-# but we'll generate 200 records as requested.
-
+# --- Pydantic Schemas Exactly Matching Frontend Types ---
 class EmployeeBase(BaseModel):
     emp_code: str
-    client: str
-    branch: str
-    site: str
+    client: str = "Acme Corp"
+    branch: str = "West"
+    site: str = "Austin"
     name: str
-    gender: str
-    status: str
-    skill_desig: str
-    client_desig: str
+    gender: str = "Male"
+    status: str = "Active"
+    skill_desig: str = "Technician"
+    client_desig: str = "Client Technician"
     email: str
     mobile: str
-    weekly_off: str
+    weekly_off: str = "Sunday"
     joined_on: date
     released_on: Optional[date] = None
-    site_count: int
-    on_board: str
-    attn_app: str
-    trainee_app: str
+    site_count: int = 1
+    on_board: str = "Yes"
+    attn_app: str = "Yes"
+    trainee_app: str = "No"
 
 class Employee(EmployeeBase):
     id: int
+    model_config = ConfigDict(from_attributes=True)
 
 class EmployeeCreate(EmployeeBase):
     pass
@@ -40,11 +41,42 @@ class ReleaseData(BaseModel):
     release_reason: str
     remarks: str
 
-# Mock Database
-mock_db: List[Employee] = []
+# --- Database Query Functions ---
+def get_all_employees(db: Session) -> List[EmployeeModel]:
+    return db.query(EmployeeModel).order_by(EmployeeModel.id.desc()).all()
 
-def generate_mock_data(count: int = 200):
-    global mock_db
+def create_employee(db: Session, emp: EmployeeCreate) -> EmployeeModel:
+    db_emp = EmployeeModel(**emp.model_dump())
+    db.add(db_emp)
+    db.commit()
+    db.refresh(db_emp)
+    return db_emp
+
+def update_employee(db: Session, emp_id: int, emp_update: EmployeeUpdate) -> Optional[EmployeeModel]:
+    db_emp = db.query(EmployeeModel).filter(EmployeeModel.id == emp_id).first()
+    if not db_emp:
+        return None
+    for key, value in emp_update.model_dump().items():
+        setattr(db_emp, key, value)
+    db.commit()
+    db.refresh(db_emp)
+    return db_emp
+
+def release_employee(db: Session, emp_id: int, release_data: ReleaseData) -> Optional[EmployeeModel]:
+    db_emp = db.query(EmployeeModel).filter(EmployeeModel.id == emp_id).first()
+    if not db_emp:
+        return None
+    db_emp.status = "Inactive"
+    db_emp.released_on = release_data.release_date
+    db.commit()
+    db.refresh(db_emp)
+    return db_emp
+
+def seed_initial_data_if_empty(db: Session, count: int = 200):
+    """If the test_db employees table is empty, seed it with sample records."""
+    if db.query(EmployeeModel).first() is not None:
+        return
+
     clients = ["Acme Corp", "Tata Communications", "Global Tech", "Innovatech"]
     branches = ["West", "East", "North", "South", "Central"]
     sites = ["Austin", "Chicago", "Boston", "Seattle", "Atlanta", "Denver", "New York", "Miami", "TCL BKC"]
@@ -52,11 +84,11 @@ def generate_mock_data(count: int = 200):
     skills = ["Sr. Analyst", "Supervisor", "HR Executive", "Technician", "Coordinator", "Safety Officer", "Recruiter", "Associate", "LS/G"]
     statuses = ["Active", "Inactive"]
     names = ["Maya Chen", "Noah Williams", "Priya Shah", "Liam Foster", "Sofia Martinez", "Ethan Brooks", "Ava Thompson", "Lucas Reed", "Rahul Sharma"]
-    
+
+    sample_employees = []
     for i in range(1, count + 1):
         status = random.choice(statuses)
-        emp = Employee(
-            id=i,
+        emp = EmployeeModel(
             emp_code=f"EMP-{1000 + i}",
             client=random.choice(clients),
             branch=random.choice(branches),
@@ -76,32 +108,8 @@ def generate_mock_data(count: int = 200):
             attn_app=random.choice(["Yes", "No"]),
             trainee_app=random.choice(["Yes", "No"]),
         )
-        mock_db.append(emp)
-
-# Initialize mock data
-generate_mock_data()
-
-def get_all_employees() -> List[Employee]:
-    return mock_db
-
-def create_employee(emp: EmployeeCreate) -> Employee:
-    new_id = max([e.id for e in mock_db], default=0) + 1
-    new_emp = Employee(**emp.dict(), id=new_id)
-    mock_db.insert(0, new_emp)
-    return new_emp
-
-def update_employee(emp_id: int, emp_update: EmployeeUpdate) -> Optional[Employee]:
-    for i, emp in enumerate(mock_db):
-        if emp.id == emp_id:
-            updated_emp = Employee(**emp_update.dict(), id=emp_id)
-            mock_db[i] = updated_emp
-            return updated_emp
-    return None
-
-def release_employee(emp_id: int, release_data: ReleaseData) -> Optional[Employee]:
-    for emp in mock_db:
-        if emp.id == emp_id:
-            emp.status = "Inactive"
-            emp.released_on = release_data.release_date
-            return emp
-    return None
+        sample_employees.append(emp)
+    
+    db.add_all(sample_employees)
+    db.commit()
+    print(f">>> [DB SEED] Successfully seeded {count} initial employee records into test_db!")

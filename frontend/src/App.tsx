@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { FilterBar } from './components/FilterBar';
 import { EmployeeTable } from './components/EmployeeTable';
 import { EmployeeModal } from './components/modals/EmployeeModal';
@@ -9,11 +9,9 @@ import { ThemeProvider } from './context/ThemeContext';
 
 function Dashboard() {
   const [employees, setEmployees] = useState<Employee[]>([]);
-  const [filteredEmployees, setFilteredEmployees] = useState<Employee[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [filters, setFilters] = useState({ client: '', branch: '', site: '', status: '' });
   
-  // Modal states
   const [isEmployeeModalOpen, setIsEmployeeModalOpen] = useState(false);
   const [isReleaseModalOpen, setIsReleaseModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState<'add' | 'edit'>('add');
@@ -22,8 +20,8 @@ function Dashboard() {
   const fetchEmployees = async () => {
     try {
       const data = await getEmployees();
+      console.log("App received employees count:", data.length);
       setEmployees(data);
-      setFilteredEmployees(data);
     } catch (error) {
       console.error("Error fetching employees", error);
     }
@@ -33,34 +31,40 @@ function Dashboard() {
     fetchEmployees();
   }, []);
 
-  const applyFilters = (query: string, currentFilters: typeof filters, data: Employee[]) => {
-    const lowerQuery = query.toLowerCase();
-    const filtered = data.filter(emp => {
-      const matchSearch = emp.name.toLowerCase().includes(lowerQuery) ||
-                          emp.emp_code.toLowerCase().includes(lowerQuery) ||
-                          emp.email.toLowerCase().includes(lowerQuery);
-      const matchClient = currentFilters.client ? emp.client === currentFilters.client : true;
-      const matchBranch = currentFilters.branch ? emp.branch === currentFilters.branch : true;
-      const matchSite = currentFilters.site ? emp.site === currentFilters.site : true;
-      const matchStatus = currentFilters.status ? emp.status === currentFilters.status : true;
-      
-      return matchSearch && matchClient && matchBranch && matchSite && matchStatus;
+  // Filtered employees calculation based on search query and dropdown filters
+  const filteredEmployees = useMemo(() => {
+    return employees.filter(emp => {
+      // 1. Search Query Filter (Searches Name, Emp Code, Mobile, Email, Designation)
+      if (searchQuery.trim()) {
+        const query = searchQuery.toLowerCase().trim();
+        const matchesName = (emp.name || '').toLowerCase().includes(query);
+        const matchesCode = (emp.emp_code || '').toLowerCase().includes(query);
+        const matchesEmail = (emp.email || '').toLowerCase().includes(query);
+        const matchesMobile = (emp.mobile || '').toLowerCase().includes(query);
+        const matchesSkill = (emp.skill_desig || '').toLowerCase().includes(query);
+        const matchesClientDesig = (emp.client_desig || '').toLowerCase().includes(query);
+        const matchesClient = (emp.client || '').toLowerCase().includes(query);
+        const matchesBranch = (emp.branch || '').toLowerCase().includes(query);
+        const matchesSite = (emp.site || '').toLowerCase().includes(query);
+
+        if (!matchesName && !matchesCode && !matchesEmail && !matchesMobile && 
+            !matchesSkill && !matchesClientDesig && !matchesClient && !matchesBranch && !matchesSite) {
+          return false;
+        }
+      }
+
+      // 2. Dropdown Filters
+      if (filters.client && emp.client !== filters.client) return false;
+      if (filters.branch && emp.branch !== filters.branch) return false;
+      if (filters.site && emp.site !== filters.site) return false;
+      if (filters.status && emp.status !== filters.status) return false;
+
+      return true;
     });
-    setFilteredEmployees(filtered);
-  };
+  }, [employees, searchQuery, filters]);
 
-  useEffect(() => {
-    applyFilters(searchQuery, filters, employees);
-  }, [searchQuery, filters, employees]);
-
-  const handleSearch = (query: string) => {
-    setSearchQuery(query);
-  };
-
-  const handleFilterChange = (name: string, value: string) => {
-    setFilters(prev => ({ ...prev, [name]: value }));
-  };
-
+  const handleSearch = (query: string) => setSearchQuery(query);
+  const handleFilterChange = (name: string, value: string) => setFilters(prev => ({ ...prev, [name]: value }));
   const handleClearFilters = () => {
     setSearchQuery("");
     setFilters({ client: '', branch: '', site: '', status: '' });
@@ -87,28 +91,31 @@ function Dashboard() {
     try {
       if (modalMode === 'add') {
         const payload = {
-          ...data,
-          status: 'Active', // Default
-          branch: 'West', // Default since form doesn't capture
-          client_desig: data.skill_desig, // Fallback
-          site_count: 1, // Default mock
+          emp_code: `EMP-${Math.floor(1000 + Math.random() * 9000)}`,
+          client: data.client || 'Acme Corp',
+          branch: 'West',
+          site: data.site || 'Austin',
+          name: data.name,
+          gender: data.gender || 'Male',
+          status: 'Active',
+          skill_desig: data.skill_desig || 'Technician',
+          client_desig: data.skill_desig || 'Client Technician',
+          email: data.email,
+          mobile: data.mobile,
+          weekly_off: 'Sunday',
+          joined_on: new Date().toISOString().split('T')[0],
+          released_on: null,
+          site_count: 1,
           on_board: 'Yes',
-          attn_app: data.app_registered ? 'Yes' : 'No',
+          attn_app: 'Yes',
           trainee_app: 'No'
         };
         await createEmployee(payload);
       } else if (selectedEmployee) {
-        const payload = {
-          ...selectedEmployee,
-          ...data,
-          branch: selectedEmployee.branch || 'West',
-          client_desig: data.skill_desig,
-          attn_app: data.app_registered ? 'Yes' : 'No',
-        };
-        await updateEmployee(selectedEmployee.id, payload);
+        await updateEmployee(selectedEmployee.id, data);
       }
       setIsEmployeeModalOpen(false);
-      fetchEmployees(); // Refresh list
+      await fetchEmployees();
     } catch (error) {
       console.error("Error saving employee", error);
     }
@@ -119,7 +126,7 @@ function Dashboard() {
       if (selectedEmployee) {
         await releaseEmployee(selectedEmployee.id, data.releaseDate, data.reason, data.remarks);
         setIsReleaseModalOpen(false);
-        fetchEmployees(); // Refresh list
+        await fetchEmployees();
       }
     } catch (error) {
       console.error("Error releasing employee", error);
@@ -128,26 +135,22 @@ function Dashboard() {
 
   return (
     <div className="min-h-screen bg-gray-100 dark:bg-slate-900 transition-colors duration-200">
-      
-      {/* Header */}
       <header className="bg-brand-dark shadow">
         <div className="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16 items-center">
             <h1 className="text-xl font-bold text-white flex items-center gap-4">
               Employees 
               <span className="bg-white/20 text-white text-xs px-2 py-1 rounded-full font-normal">
-                {employees.length} records
+                {filteredEmployees.length} of {employees.length} records
               </span>
             </h1>
           </div>
         </div>
       </header>
 
-      {/* Main Content */}
       <main className="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <FilterBar 
           onAdd={handleAddEmployee}
-          onRefresh={fetchEmployees}
           onSearch={handleSearch}
           searchQuery={searchQuery}
           onClear={handleClearFilters}
@@ -162,7 +165,6 @@ function Dashboard() {
         />
       </main>
 
-      {/* Modals */}
       <EmployeeModal 
         isOpen={isEmployeeModalOpen} 
         onClose={() => setIsEmployeeModalOpen(false)}

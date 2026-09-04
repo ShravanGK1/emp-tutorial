@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import type { Employee } from '../types';
 import { ArrowUpDown, Edit, UserMinus, ChevronLeft, ChevronRight } from 'lucide-react';
 import clsx from 'clsx';
@@ -14,7 +14,12 @@ type SortConfig = { key: keyof Employee | null; direction: 'asc' | 'desc' };
 export function EmployeeTable({ data, onEdit, onRelease }: EmployeeTableProps) {
   const [sortConfig, setSortConfig] = useState<SortConfig>({ key: null, direction: 'asc' });
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 50;
+  const itemsPerPage = 25;
+
+  // Reset to page 1 when filtered dataset changes or shrinks
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [data.length]);
 
   const sortedData = useMemo(() => {
     let sortableItems = [...data];
@@ -188,12 +193,7 @@ export function EmployeeTable({ data, onEdit, onRelease }: EmployeeTableProps) {
               </button>
             </nav>
             
-            <div className="flex items-center text-sm text-gray-500 dark:text-gray-400">
-              Rows per page: 
-              <select className="ml-2 block w-full pl-3 pr-10 py-1 text-base border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md bg-white dark:bg-slate-700">
-                <option>50</option>
-              </select>
-            </div>
+            
           </div>
         </div>
       </div>

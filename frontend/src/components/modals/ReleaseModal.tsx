@@ -48,15 +48,15 @@ export function ReleaseModal({ isOpen, onClose, onSubmit, employee }: ReleaseMod
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Employee</label>
-                  <input disabled value={employee.name} className="w-full border-gray-300 dark:border-gray-600 rounded-md shadow-sm sm:text-sm bg-gray-50 dark:bg-slate-700 text-gray-500" />
+                  <input disabled value={employee.name} className="w-full border-0 border-b-2 border-gray-300 dark:border-gray-600 text-base py-2 px-1 bg-transparent text-gray-500 dark:text-gray-400" />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Employee Code</label>
-                  <input disabled value={employee.emp_code} className="w-full border-gray-300 dark:border-gray-600 rounded-md shadow-sm sm:text-sm bg-gray-50 dark:bg-slate-700 text-gray-500" />
+                  <input disabled value={employee.emp_code} className="w-full border-0 border-b-2 border-gray-300 dark:border-gray-600 text-base py-2 px-1 bg-transparent text-gray-500 dark:text-gray-400" />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Client</label>
-                  <input disabled value={employee.client} className="w-full border-gray-300 dark:border-gray-600 rounded-md shadow-sm sm:text-sm bg-gray-50 dark:bg-slate-700 text-gray-500" />
+                  <input disabled value={employee.client} className="w-full border-0 border-b-2 border-gray-300 dark:border-gray-600 text-base py-2 px-1 bg-transparent text-gray-500 dark:text-gray-400" />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Site</label>
@@ -73,11 +73,11 @@ export function ReleaseModal({ isOpen, onClose, onSubmit, employee }: ReleaseMod
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Release Date *</label>
-                  <input {...register("releaseDate", { required: true })} type="date" className="w-full border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-red-500 focus:border-red-500 sm:text-sm bg-white dark:bg-slate-700 dark:text-white" />
+                  <input {...register("releaseDate", { required: true })} type="date" className="w-full border-0 border-b-2 border-gray-300 dark:border-gray-600 focus:ring-0 focus:border-red-500 text-base py-2 px-1 bg-transparent dark:text-white" />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Release Reason *</label>
-                  <select {...register("reason", { required: true })} className="w-full border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-red-500 focus:border-red-500 sm:text-sm bg-white dark:bg-slate-700 dark:text-white">
+                  <select {...register("reason", { required: true })} className="w-full border-0 border-b-2 border-gray-300 dark:border-gray-600 focus:ring-0 focus:border-red-500 text-base py-2 px-1 bg-transparent dark:text-white">
                     <option value="">Select reason</option>
                     <option value="Resigned">Resigned</option>
                     <option value="Terminated">Terminated</option>
@@ -86,7 +86,7 @@ export function ReleaseModal({ isOpen, onClose, onSubmit, employee }: ReleaseMod
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Remarks</label>
-                  <textarea {...register("remarks")} className="w-full border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-red-500 focus:border-red-500 sm:text-sm bg-white dark:bg-slate-700 dark:text-white" placeholder="Enter remarks..." rows={2}></textarea>
+                  <textarea {...register("remarks")} className="w-full border-0 border-b-2 border-gray-300 dark:border-gray-600 focus:ring-0 focus:border-red-500 text-base py-2 px-1 bg-transparent dark:text-white" placeholder="Enter remarks..." rows={2}></textarea>
                 </div>
               </div>
 

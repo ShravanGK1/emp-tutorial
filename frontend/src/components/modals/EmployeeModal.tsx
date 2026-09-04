@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Dialog } from '@headlessui/react';
 import { useForm } from 'react-hook-form';
 import type { Employee, EmployeeFormData } from '../../types';
@@ -13,6 +13,9 @@ interface EmployeeModalProps {
 }
 
 export function EmployeeModal({ isOpen, onClose, onSubmit, initialData, mode }: EmployeeModalProps) {
+  const [mobileDigits, setMobileDigits] = useState('');
+  const [mobileError, setMobileError] = useState('');
+
   const { register, handleSubmit, reset } = useForm<EmployeeFormData>({
     defaultValues: initialData || {
       app_registered: false
@@ -21,20 +24,45 @@ export function EmployeeModal({ isOpen, onClose, onSubmit, initialData, mode }: 
 
   useEffect(() => {
     if (isOpen) {
+      setMobileError('');
       if (initialData) {
         reset(initialData);
+        // Extract 10 digits from existing mobile
+        const digitsOnly = (initialData.mobile || '').replace(/\D/g, '').slice(-10);
+        setMobileDigits(digitsOnly);
       } else {
         reset({ app_registered: false });
+        setMobileDigits('');
       }
     }
   }, [isOpen, initialData, reset]);
+
+  const handleMobileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value.replace(/\D/g, '').slice(0, 10);
+    setMobileDigits(value);
+    if (value.length === 10) {
+      setMobileError('');
+    }
+  };
+
+  const onFormSubmit = (data: EmployeeFormData) => {
+    if (mobileDigits.length !== 10) {
+      setMobileError('Please enter a valid 10-digit mobile number');
+      return;
+    }
+    setMobileError('');
+    onSubmit({
+      ...data,
+      mobile: mobileDigits
+    });
+  };
 
   return (
     <Dialog open={isOpen} onClose={onClose} className="relative z-50">
       <div className="fixed inset-0 bg-black/30 dark:bg-black/60" aria-hidden="true" />
       <div className="fixed inset-0 flex items-center justify-center p-4">
         <Dialog.Panel className="w-full max-w-4xl rounded bg-white dark:bg-slate-800 shadow-xl overflow-hidden">
-          
+
           <div className="bg-slate-900 text-white px-6 py-4 flex justify-between items-center">
             <div>
               <p className="text-xs uppercase tracking-wider text-slate-400 mb-1">People</p>
@@ -46,18 +74,16 @@ export function EmployeeModal({ isOpen, onClose, onSubmit, initialData, mode }: 
               <span className="text-sm text-slate-300">
                 {mode === 'add' ? 'Create a new employee profile' : 'Update an existing employee profile'}
               </span>
-              <div className="px-3 py-1 rounded bg-teal-600 text-white text-xs font-semibold">
-                {mode === 'add' ? 'NEW EMPLOYEE' : 'ACTIVE'}
-              </div>
+              
               <button onClick={onClose} className="text-slate-400 hover:text-white">
                 <X className="h-5 w-5" />
               </button>
             </div>
           </div>
 
-          <form onSubmit={handleSubmit(onSubmit)} className="p-8">
+          <form onSubmit={handleSubmit(onFormSubmit)} className="p-8">
             <div className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-gray-700 rounded-lg p-6">
-              
+
               <div className="flex justify-between items-center mb-6">
                 <div>
                   <h3 className="text-lg font-medium text-gray-900 dark:text-white">Employee information</h3>
@@ -75,26 +101,43 @@ export function EmployeeModal({ isOpen, onClose, onSubmit, initialData, mode }: 
               <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Employee Code *</label>
-                  <input {...register("emp_code", { required: true })} className="w-full border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-teal-500 focus:border-teal-500 sm:text-sm bg-white dark:bg-slate-700 dark:text-white" placeholder="Enter employee code" />
+                  <input {...register("emp_code", { required: true })} className="w-full border-0 border-b-2 border-gray-300 dark:border-gray-600 focus:ring-0 focus:border-teal-500 text-base py-2 px-1 bg-transparent dark:text-white" placeholder="Enter employee code" />
                 </div>
                 <div className="md:col-span-1">
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Employee Full Name *</label>
-                  <input {...register("name", { required: true })} className="w-full border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-teal-500 focus:border-teal-500 sm:text-sm bg-white dark:bg-slate-700 dark:text-white" placeholder="Enter full name" />
+                  <input {...register("name", { required: true })} className="w-full border-0 border-b-2 border-gray-300 dark:border-gray-600 focus:ring-0 focus:border-teal-500 text-base py-2 px-1 bg-transparent dark:text-white" placeholder="Enter full name" />
                 </div>
+                
+                {/* 10-Digit Mobile Number Input */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Mobile *</label>
-                  <input {...register("mobile", { required: true })} className="w-full border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-teal-500 focus:border-teal-500 sm:text-sm bg-white dark:bg-slate-700 dark:text-white" placeholder="Enter mobile number" />
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Mobile Number (10 digits) *</label>
+                  <input
+                    type="tel"
+                    inputMode="numeric"
+                    maxLength={10}
+                    value={mobileDigits}
+                    onChange={handleMobileChange}
+                    className="w-full border-0 border-b-2 border-gray-300 dark:border-gray-600 focus:ring-0 focus:border-teal-500 text-base py-2 px-1 bg-transparent dark:text-white placeholder-gray-400 tracking-wider font-mono"
+                    placeholder="9876543210"
+                  />
+                  {mobileError && (
+                    <p className="text-xs text-red-500 mt-1">{mobileError}</p>
+                  )}
+                  {mobileDigits.length > 0 && mobileDigits.length < 10 && !mobileError && (
+                    <p className="text-xs text-amber-500 mt-1">{10 - mobileDigits.length} digits remaining</p>
+                  )}
                 </div>
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email</label>
-                  <input {...register("email")} type="email" className="w-full border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-teal-500 focus:border-teal-500 sm:text-sm bg-white dark:bg-slate-700 dark:text-white" placeholder="name@company.com" />
+                  <input {...register("email")} type="email" className="w-full border-0 border-b-2 border-gray-300 dark:border-gray-600 focus:ring-0 focus:border-teal-500 text-base py-2 px-1 bg-transparent dark:text-white" placeholder="name@company.com" />
                 </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Gender *</label>
-                  <select {...register("gender")} className="w-full border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-teal-500 focus:border-teal-500 sm:text-sm bg-white dark:bg-slate-700 dark:text-white">
+                  <select {...register("gender")} className="w-full border-0 border-b-2 border-gray-300 dark:border-gray-600 focus:ring-0 focus:border-teal-500 text-base py-2 px-1 bg-transparent dark:text-white">
                     <option value="">Select gender</option>
                     <option value="Male">Male</option>
                     <option value="Female">Female</option>
@@ -103,11 +146,11 @@ export function EmployeeModal({ isOpen, onClose, onSubmit, initialData, mode }: 
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Date of Joining *</label>
-                  <input {...register("joined_on", { required: true })} type="date" className="w-full border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-teal-500 focus:border-teal-500 sm:text-sm bg-white dark:bg-slate-700 dark:text-white" />
+                  <input {...register("joined_on", { required: true })} type="date" className="w-full border-0 border-b-2 border-gray-300 dark:border-gray-600 focus:ring-0 focus:border-teal-500 text-base py-2 px-1 bg-transparent dark:text-white" />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Weekly Off *</label>
-                  <select {...register("weekly_off")} className="w-full border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-teal-500 focus:border-teal-500 sm:text-sm bg-white dark:bg-slate-700 dark:text-white">
+                  <select {...register("weekly_off")} className="w-full border-0 border-b-2 border-gray-300 dark:border-gray-600 focus:ring-0 focus:border-teal-500 text-base py-2 px-1 bg-transparent dark:text-white">
                     <option value="">Select day</option>
                     <option value="Sunday">Sunday</option>
                     <option value="Sat, Sun">Sat, Sun</option>
@@ -116,14 +159,14 @@ export function EmployeeModal({ isOpen, onClose, onSubmit, initialData, mode }: 
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Weekly Off for days *</label>
-                  <input type="number" defaultValue="1" className="w-full border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-teal-500 focus:border-teal-500 sm:text-sm bg-white dark:bg-slate-700 dark:text-white" placeholder="Enter number" />
+                  <input type="number" defaultValue="1" className="w-full border-0 border-b-2 border-gray-300 dark:border-gray-600 focus:ring-0 focus:border-teal-500 text-base py-2 px-1 bg-transparent dark:text-white" placeholder="Enter number" />
                 </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Client *</label>
-                  <select {...register("client", { required: true })} className="w-full border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-teal-500 focus:border-teal-500 sm:text-sm bg-white dark:bg-slate-700 dark:text-white">
+                  <select {...register("client", { required: true })} className="w-full border-0 border-b-2 border-gray-300 dark:border-gray-600 focus:ring-0 focus:border-teal-500 text-base py-2 px-1 bg-transparent dark:text-white">
                     <option value="">Select client</option>
                     <option value="Acme Corp">Acme Corp</option>
                     <option value="Tata Communications">Tata Communications</option>
@@ -131,7 +174,7 @@ export function EmployeeModal({ isOpen, onClose, onSubmit, initialData, mode }: 
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Site *</label>
-                  <select {...register("site", { required: true })} className="w-full border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-teal-500 focus:border-teal-500 sm:text-sm bg-white dark:bg-slate-700 dark:text-white">
+                  <select {...register("site", { required: true })} className="w-full border-0 border-b-2 border-gray-300 dark:border-gray-600 focus:ring-0 focus:border-teal-500 text-base py-2 px-1 bg-transparent dark:text-white">
                     <option value="">Select site</option>
                     <option value="Austin">Austin</option>
                     <option value="TCL BKC">TCL BKC</option>
@@ -139,7 +182,7 @@ export function EmployeeModal({ isOpen, onClose, onSubmit, initialData, mode }: 
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Designation *</label>
-                  <select {...register("skill_desig", { required: true })} className="w-full border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-teal-500 focus:border-teal-500 sm:text-sm bg-white dark:bg-slate-700 dark:text-white">
+                  <select {...register("skill_desig", { required: true })} className="w-full border-0 border-b-2 border-gray-300 dark:border-gray-600 focus:ring-0 focus:border-teal-500 text-base py-2 px-1 bg-transparent dark:text-white">
                     <option value="">Select designation</option>
                     <option value="LS/G">LS/G</option>
                     <option value="Sr. Analyst">Sr. Analyst</option>
@@ -157,7 +200,7 @@ export function EmployeeModal({ isOpen, onClose, onSubmit, initialData, mode }: 
                   {mode === 'add' && <span className="ml-3 text-xs text-gray-500">Off by default</span>}
                   {mode === 'edit' && initialData?.status === 'Active' && <span className="ml-3 text-xs text-teal-600">Active</span>}
                 </div>
-                
+
                 <div className="flex items-center gap-4">
                   <span className="text-xs text-gray-500 mr-4">* Required fields</span>
                   <button type="button" onClick={onClose} className="px-4 py-2 border border-gray-300 dark:border-gray-600 shadow-sm text-sm font-medium rounded-md text-gray-700 dark:text-gray-300 bg-white dark:bg-slate-700 hover:bg-gray-50 dark:hover:bg-slate-600 focus:outline-none">
