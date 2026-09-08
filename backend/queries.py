@@ -1,11 +1,12 @@
 from typing import List, Optional
+# pyrefly: ignore [missing-import]
 from pydantic import BaseModel, ConfigDict
 from datetime import date
 import random
 from sqlalchemy.orm import Session
 from models import EmployeeModel
 
-# --- Pydantic Schemas Exactly Matching Frontend Types ---
+# --- Pydantic Schemas ---
 class EmployeeBase(BaseModel):
     emp_code: str
     client: str = "Acme Corp"
@@ -14,13 +15,15 @@ class EmployeeBase(BaseModel):
     name: str
     gender: str = "Male"
     status: str = "Active"
-    skill_desig: str = "Technician"
+    designation: str = "Technician"
     client_desig: str = "Client Technician"
     email: str
     mobile: str
     weekly_off: str = "Sunday"
     joined_on: date
     released_on: Optional[date] = None
+    release_reason: Optional[str] = None
+    remarks: Optional[str] = None
     site_count: int = 1
     on_board: str = "Yes"
     attn_app: str = "Yes"
@@ -43,6 +46,7 @@ class ReleaseData(BaseModel):
 
 # --- Database Query Functions ---
 def get_all_employees(db: Session) -> List[EmployeeModel]:
+    # Returns all employees (both Active and Inactive) so historical logs are never lost
     return db.query(EmployeeModel).order_by(EmployeeModel.id.desc()).all()
 
 def create_employee(db: Session, emp: EmployeeCreate) -> EmployeeModel:
@@ -58,22 +62,48 @@ def update_employee(db: Session, emp_id: int, emp_update: EmployeeUpdate) -> Opt
         return None
     for key, value in emp_update.model_dump().items():
         setattr(db_emp, key, value)
+    
+    # If the updated status is Active or on_board is Active/Yes, reset release metadata
+    if db_emp.status == "Active" or db_emp.on_board in ["Active", "Yes"]:
+        db_emp.status = "Active"
+        db_emp.on_board = "Active"
+        db_emp.released_on = None
+        db_emp.release_reason = None
+        db_emp.remarks = None
+
+    db.commit()
+    db.refresh(db_emp)
+    return db_emp
+
+def re_onboard_employee(db: Session, emp_id: int) -> Optional[EmployeeModel]:
+    # Re-activate released employee: Reset status, on_board, and clear release fields
+    db_emp = db.query(EmployeeModel).filter(EmployeeModel.id == emp_id).first()
+    if not db_emp:
+        return None
+    db_emp.status = "Active"
+    db_emp.on_board = "Active"
+    db_emp.released_on = None
+    db_emp.release_reason = None
+    db_emp.remarks = None
     db.commit()
     db.refresh(db_emp)
     return db_emp
 
 def release_employee(db: Session, emp_id: int, release_data: ReleaseData) -> Optional[EmployeeModel]:
+    # Soft release: Do NOT delete the employee record. Update status and release log details.
     db_emp = db.query(EmployeeModel).filter(EmployeeModel.id == emp_id).first()
     if not db_emp:
         return None
     db_emp.status = "Inactive"
+    db_emp.on_board = "Inactive"
     db_emp.released_on = release_data.release_date
+    db_emp.release_reason = release_data.release_reason
+    db_emp.remarks = release_data.remarks
     db.commit()
     db.refresh(db_emp)
     return db_emp
 
 def seed_initial_data_if_empty(db: Session, count: int = 200):
-    """If the test_db employees table is empty, seed it with sample records."""
     if db.query(EmployeeModel).first() is not None:
         return
 
@@ -96,7 +126,7 @@ def seed_initial_data_if_empty(db: Session, count: int = 200):
             name=f"{random.choice(names)} {i}",
             gender=random.choice(genders),
             status=status,
-            skill_desig=random.choice(skills),
+            designation=random.choice(skills),
             client_desig=f"Client {random.choice(skills)}",
             email=f"emp{i}@example.com",
             mobile=f"+1 555 01{i:02d}",
@@ -112,4 +142,3 @@ def seed_initial_data_if_empty(db: Session, count: int = 200):
     
     db.add_all(sample_employees)
     db.commit()
-    print(f">>> [DB SEED] Successfully seeded {count} initial employee records into test_db!")

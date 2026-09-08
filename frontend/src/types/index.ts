@@ -7,19 +7,24 @@ export interface Employee {
   name: string;
   gender: string;
   status: string;
-  skill_desig: string;
+  designation: string;
   client_desig: string;
   email: string;
   mobile: string;
   weekly_off: string;
   joined_on: string;
   released_on: string | null;
+  release_reason?: string | null;
+  remarks?: string | null;
   site_count: number;
   on_board: string;
   attn_app: string;
   trainee_app: string;
 }
 
-export type EmployeeFormData = Omit<Employee, 'id' | 'released_on' | 'site_count' | 'on_board' | 'attn_app' | 'trainee_app' | 'status'> & {
-  app_registered: boolean;
+export type EmployeeFormData = Omit<Employee, 'id' | 'site_count' | 'attn_app' | 'trainee_app'> & {
+  app_registered?: boolean;
+  status?: string;
+  on_board?: string;
+  released_on?: string | null;
 };

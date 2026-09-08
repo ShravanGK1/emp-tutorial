@@ -26,3 +26,8 @@ export const releaseEmployee = async (id: number, releaseDate: string, reason: s
   });
   return response.data;
 };
+
+export const reonboardEmployee = async (id: number): Promise<Employee> => {
+  const response = await axios.post(`${API_URL}/employees/${id}/re-onboard`);
+  return response.data;
+};

@@ -23,4 +23,20 @@
     background-color: #0f172a;
     color: #f1f5f9;
   }
+
+  /* Select and option styling for crisp visibility across light and dark mode */
+  select option {
+    background-color: #ffffff;
+    color: #0f172a;
+  }
+  html.dark select option {
+    background-color: #1e293b;
+    color: #f8fafc;
+  }
+
+  /* Date picker icon contrast in dark mode */
+  html.dark input[type="date"]::-webkit-calendar-picker-indicator {
+    filter: invert(0.9) brightness(1.2);
+    cursor: pointer;
+  }
 }

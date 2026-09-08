@@ -1,10 +1,12 @@
+# pyrefly: ignore [missing-import]
 from fastapi import FastAPI
+# pyrefly: ignore [missing-import]
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from router import router
 from database import engine, Base, SessionLocal
 from queries import seed_initial_data_if_empty
-import models
+import models  # noqa: F401
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -37,5 +39,6 @@ app.add_middleware(
 app.include_router(router, prefix="/api")
 
 if __name__ == "__main__":
+    # pyrefly: ignore [missing-import]
     import uvicorn
     uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=True)

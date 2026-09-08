@@ -8,6 +8,7 @@ from queries import (
     create_employee,
     update_employee,
     release_employee,
+    re_onboard_employee,
     Employee,
     EmployeeCreate,
     EmployeeUpdate,
@@ -41,3 +42,11 @@ def release_emp(emp_id: int, release_data: ReleaseData, db: Session = Depends(ge
     if not released:
         raise HTTPException(status_code=404, detail="Employee not found")
     return released
+
+# POST route to re-onboard employee in DB
+@router.post("/employees/{emp_id}/re-onboard", response_model=Employee)
+def re_onboard_emp(emp_id: int, db: Session = Depends(get_db)):
+    reactivated = re_onboard_employee(db, emp_id)
+    if not reactivated:
+        raise HTTPException(status_code=404, detail="Employee not found")
+    return reactivated
