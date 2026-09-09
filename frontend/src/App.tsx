@@ -94,9 +94,10 @@ function Dashboard() {
         const matchesClient = (emp.client || '').toLowerCase().includes(query);
         const matchesBranch = (emp.branch || '').toLowerCase().includes(query);
         const matchesSite = (emp.site || '').toLowerCase().includes(query);
+        const matchesOthers = (emp.others || '').toLowerCase().includes(query);
 
         if (!matchesName && !matchesCode && !matchesEmail && !matchesMobile && 
-            !matchesSkill && !matchesClientDesig && !matchesClient && !matchesBranch && !matchesSite) {
+            !matchesSkill && !matchesClientDesig && !matchesClient && !matchesBranch && !matchesSite && !matchesOthers) {
           return false;
         }
       }
@@ -191,7 +192,7 @@ function Dashboard() {
           site_count: 1,
           on_board: 'Active',
           attn_app: 'Yes',
-          trainee_app: 'No'
+          others: data.others || ''
         };
         await createEmployee(payload);
       } else if (selectedEmployee) {

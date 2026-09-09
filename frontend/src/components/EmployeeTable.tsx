@@ -73,7 +73,7 @@ export function EmployeeTable({ data, onEdit, onRelease, onReonboard }: Employee
     { label: 'Released On', key: 'released_on', sortable: true },
     { label: 'On Board', key: 'on_board', sortable: true },
     { label: 'Attn App', key: 'attn_app', sortable: true },
-    { label: 'Trainee App', key: 'trainee_app', sortable: true },
+    { label: 'Others', key: 'others', sortable: true },
   ];
 
   const renderSortIcon = (sortable?: boolean) => {
@@ -145,7 +145,19 @@ export function EmployeeTable({ data, onEdit, onRelease, onReonboard }: Employee
                   </span>
                 </td>
                 <td className="px-3 py-4 whitespace-nowrap text-sm font-semibold text-green-600 dark:text-green-400">{emp.attn_app}</td>
-                <td className="px-3 py-4 whitespace-nowrap text-sm font-semibold text-gray-500 dark:text-gray-400">{emp.trainee_app}</td>
+                <td className="px-3 py-4 text-sm text-gray-700 dark:text-gray-300">
+                  {emp.others ? (
+                    <div className="flex flex-wrap gap-1 max-w-[220px]">
+                      {emp.others.split(',').map((val) => val.trim()).filter(Boolean).map((tag, i) => (
+                        <span key={i} className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-600">
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
+                  ) : (
+                    <span className="text-gray-400 dark:text-gray-500">—</span>
+                  )}
+                </td>
 
                 {/* Sticky Action Column Body Cell */}
                 <td className="sticky right-0 bg-white dark:bg-slate-800 group-hover:bg-gray-50 dark:group-hover:bg-slate-700 px-4 py-4 whitespace-nowrap text-center text-sm font-medium shadow-[-4px_0_6px_-2px_rgba(0,0,0,0.08)] dark:shadow-[-4px_0_6px_-2px_rgba(0,0,0,0.4)] z-10">

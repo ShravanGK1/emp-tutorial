@@ -127,9 +127,146 @@ function SearchableSelect({
   );
 }
 
+interface MultiSelectProps {
+  label: string;
+  placeholder: string;
+  options: string[];
+  selected: string[];
+  onChange: (selected: string[]) => void;
+}
+
+function MultiSelect({ label, placeholder, options, selected, onChange }: MultiSelectProps) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [inputValue, setInputValue] = useState('');
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const toggleOption = (opt: string) => {
+    if (selected.includes(opt)) {
+      onChange(selected.filter((item) => item !== opt));
+    } else {
+      onChange([...selected, opt]);
+    }
+  };
+
+  const handleAddCustom = () => {
+    const trimmed = inputValue.trim();
+    if (trimmed && !selected.includes(trimmed)) {
+      onChange([...selected, trimmed]);
+      setInputValue('');
+    }
+  };
+
+  const removeTag = (tag: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    onChange(selected.filter((item) => item !== tag));
+  };
+
+  const availableOptions = useMemo(() => {
+    const all = new Set([...options, ...selected]);
+    if (!inputValue.trim()) return Array.from(all);
+    const q = inputValue.toLowerCase().trim();
+    return Array.from(all).filter((opt) => opt.toLowerCase().includes(q));
+  }, [options, selected, inputValue]);
+
+  return (
+    <div ref={containerRef} className="relative">
+      <label className="block text-xs font-semibold text-gray-700 dark:text-slate-200 mb-1.5">
+        {label}
+      </label>
+      <div
+        onClick={() => setIsOpen(true)}
+        className="min-h-[42px] p-2 rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700/80 shadow-sm focus-within:border-teal-500 dark:focus-within:border-teal-400 focus-within:ring-1 focus-within:ring-teal-500 flex flex-wrap items-center gap-1.5 cursor-pointer"
+      >
+        {selected.map((item) => (
+          <span
+            key={item}
+            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium bg-teal-50 text-teal-700 dark:bg-teal-900/40 dark:text-teal-300 border border-teal-200 dark:border-teal-700"
+          >
+            {item}
+            <button
+              type="button"
+              onClick={(e) => removeTag(item, e)}
+              className="hover:text-teal-900 dark:hover:text-white p-0.5 rounded-full cursor-pointer"
+            >
+              <X className="w-3 h-3" />
+            </button>
+          </span>
+        ))}
+        <input
+          type="text"
+          value={inputValue}
+          onChange={(e) => setInputValue(e.target.value)}
+          onFocus={() => setIsOpen(true)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              handleAddCustom();
+            }
+          }}
+          placeholder={selected.length === 0 ? placeholder : ''}
+          className="flex-1 min-w-[140px] bg-transparent text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-slate-400 focus:outline-none px-1"
+        />
+      </div>
+
+      {isOpen && (
+        <div className="absolute z-30 top-full left-0 right-0 mt-1 max-h-52 overflow-y-auto rounded-lg bg-white dark:bg-[#1b263b] border border-gray-200 dark:border-slate-700 shadow-xl py-1 text-sm">
+          {inputValue.trim() && !selected.includes(inputValue.trim()) && (
+            <div
+              onMouseDown={(e) => {
+                e.preventDefault();
+                handleAddCustom();
+              }}
+              className="px-3 py-2 cursor-pointer hover:bg-teal-50 dark:hover:bg-slate-700/80 flex items-center gap-2 text-teal-600 dark:text-teal-400 font-medium border-b border-gray-100 dark:border-slate-700"
+            >
+              <span>+ Add "{inputValue.trim()}"</span>
+            </div>
+          )}
+          {availableOptions.map((opt) => {
+            const isSelected = selected.includes(opt);
+            return (
+              <div
+                key={opt}
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  toggleOption(opt);
+                }}
+                className={`px-3 py-2 cursor-pointer hover:bg-teal-50 dark:hover:bg-slate-700/80 flex items-center justify-between text-gray-800 dark:text-slate-200 ${
+                  isSelected ? 'bg-teal-50/80 dark:bg-slate-700 font-semibold text-teal-600 dark:text-teal-400' : ''
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={isSelected}
+                    readOnly
+                    className="rounded border-gray-300 text-teal-600 focus:ring-teal-500 pointer-events-none"
+                  />
+                  <span>{opt}</span>
+                </div>
+                {isSelected && <Check className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400" />}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function EmployeeModal({ isOpen, onClose, onSubmit, initialData, mode, employees }: EmployeeModalProps) {
   const [mobileDigits, setMobileDigits] = useState('');
   const [mobileError, setMobileError] = useState('');
+  const [selectedOthers, setSelectedOthers] = useState<string[]>([]);
 
   const { register, handleSubmit, reset, setValue, watch, formState: { errors } } = useForm<EmployeeFormData>({
     defaultValues: initialData || {
@@ -169,6 +306,25 @@ export function EmployeeModal({ isOpen, onClose, onSubmit, initialData, mode, em
     return Array.from(list).sort();
   }, [employees, initialData]);
 
+  const othersOptions = useMemo(() => {
+    const list = new Set(["Trainee App", "Safety App", "Audit App", "Checklist App", "Visitor App", "Security App", "Incident App", "Asset App"]);
+    (employees || []).forEach(e => {
+      if (e.others) {
+        e.others.split(',').forEach(item => {
+          const trimmed = item.trim();
+          if (trimmed) list.add(trimmed);
+        });
+      }
+    });
+    if (initialData?.others) {
+      initialData.others.split(',').forEach(item => {
+        const trimmed = item.trim();
+        if (trimmed) list.add(trimmed);
+      });
+    }
+    return Array.from(list).sort();
+  }, [employees, initialData]);
+
   useEffect(() => {
     if (isOpen) {
       setMobileError('');
@@ -177,9 +333,15 @@ export function EmployeeModal({ isOpen, onClose, onSubmit, initialData, mode, em
         // Extract 10 digits from existing mobile
         const digitsOnly = (initialData.mobile || '').replace(/\D/g, '').slice(-10);
         setMobileDigits(digitsOnly);
+        if (initialData.others) {
+          setSelectedOthers(initialData.others.split(',').map(s => s.trim()).filter(Boolean));
+        } else {
+          setSelectedOthers([]);
+        }
       } else {
         reset({ app_registered: false, client: '', site: '', designation: '' });
         setMobileDigits('');
+        setSelectedOthers([]);
       }
     }
   }, [isOpen, initialData, reset]);
@@ -200,7 +362,8 @@ export function EmployeeModal({ isOpen, onClose, onSubmit, initialData, mode, em
     setMobileError('');
     onSubmit({
       ...data,
-      mobile: mobileDigits
+      mobile: mobileDigits,
+      others: selectedOthers.join(', ')
     });
   };
 
@@ -431,6 +594,23 @@ export function EmployeeModal({ isOpen, onClose, onSubmit, initialData, mode, em
                   onChange={(val) => setValue('designation', val, { shouldValidate: true })}
                   required
                   error={errors.designation?.message}
+                />
+              </div>
+
+              {/* Additional Applications / Others Multi-Value Selector */}
+              <div className="border-t border-gray-100 dark:border-slate-700 pt-4 mb-2">
+                <p className="text-xs font-semibold uppercase tracking-wider text-teal-700 dark:text-teal-400 mb-3">
+                  Applications & Additional Roles (Others)
+                </p>
+              </div>
+
+              <div className="mb-8">
+                <MultiSelect
+                  label="Others (Select multiple apps or type custom tag)"
+                  placeholder="Select or type apps (e.g. Trainee App, Safety App)..."
+                  options={othersOptions}
+                  selected={selectedOthers}
+                  onChange={setSelectedOthers}
                 />
               </div>
 

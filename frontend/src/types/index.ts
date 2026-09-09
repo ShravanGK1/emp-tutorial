@@ -19,10 +19,10 @@ export interface Employee {
   site_count: number;
   on_board: string;
   attn_app: string;
-  trainee_app: string;
+  others: string;
 }
 
-export type EmployeeFormData = Omit<Employee, 'id' | 'site_count' | 'attn_app' | 'trainee_app'> & {
+export type EmployeeFormData = Omit<Employee, 'id' | 'site_count' | 'attn_app'> & {
   app_registered?: boolean;
   status?: string;
   on_board?: string;

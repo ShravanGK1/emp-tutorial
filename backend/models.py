@@ -24,4 +24,4 @@ class EmployeeModel(Base):
     site_count = Column(Integer, default=1)
     on_board = Column(String(10), default="Yes")
     attn_app = Column(String(10), default="Yes")
-    trainee_app = Column(String(10), default="No")
+    others = Column(String(255), default="")

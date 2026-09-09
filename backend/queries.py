@@ -27,7 +27,7 @@ class EmployeeBase(BaseModel):
     site_count: int = 1
     on_board: str = "Yes"
     attn_app: str = "Yes"
-    trainee_app: str = "No"
+    others: str = ""
 
 class Employee(EmployeeBase):
     id: int
@@ -136,7 +136,7 @@ def seed_initial_data_if_empty(db: Session, count: int = 200):
             site_count=random.randint(1, 5),
             on_board=random.choice(["Yes", "No"]),
             attn_app=random.choice(["Yes", "No"]),
-            trainee_app=random.choice(["Yes", "No"]),
+            others=random.choice(["Trainee App", "Safety App", "Trainee App, Safety App", "Audit App, Checklist App", ""]),
         )
         sample_employees.append(emp)
     
